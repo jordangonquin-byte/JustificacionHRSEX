@@ -15,6 +15,7 @@
     --verde:#2e7d32; --rojo:#c62828; --amarillo:#f9a825;
     --shadow:0 2px 6px rgba(0,0,0,.08);
     --alert-bg:#fff3cd; --alert-border:#f9a825;
+    --firma-bg:#ffffff; --firma-borde:#2e75b6;
   }
   /* ============ TEMA OSCURO ============ */
   body.dark{
@@ -26,6 +27,7 @@
     --verde:#43a047; --rojo:#e53935; --amarillo:#fdd835;
     --shadow:0 2px 8px rgba(0,0,0,.5);
     --alert-bg:#3a3315; --alert-border:#fdd835;
+    --firma-bg:#ffffff; --firma-borde:#3a8fd6;
   }
 
   *{box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif;}
@@ -53,10 +55,11 @@
   .btn-primary:hover{background:var(--azul);}
   .btn-danger{background:var(--rojo); color:#fff;}
   .btn-ok{background:var(--verde); color:#fff;}
+  .btn-sec{background:var(--text-soft); color:#fff;}
 
   table{width:100%; border-collapse:collapse; font-size:.85rem;}
   th{background:var(--azul); color:#fff; padding:8px; text-align:left; position:sticky; top:0;}
-  td{padding:7px 8px; border-bottom:1px solid var(--border-soft);}
+  td{padding:7px 8px; border-bottom:1px solid var(--border-soft); vertical-align:middle;}
   tr:nth-child(even){background:var(--row-alt);}
   tr:hover{background:var(--row-hover);}
 
@@ -80,6 +83,35 @@
 
   .empty{text-align:center; color:var(--text-soft); padding:20px; font-style:italic;}
   .alert{background:var(--alert-bg); border-left:4px solid var(--alert-border); padding:10px; border-radius:6px; font-size:.85rem; margin-bottom:12px; color:var(--text);}
+
+  /* ===== FIRMA ===== */
+  .firma-box{
+    background:var(--firma-bg);
+    border:2px dashed var(--firma-borde);
+    border-radius:8px;
+    padding:4px;
+    display:inline-block;
+    cursor:crosshair;
+    touch-action:none;
+    width:100%;
+    max-width:520px;
+  }
+  .firma-box canvas{
+    display:block;
+    background:transparent;
+    border-radius:6px;
+    width:100%;
+    height:150px;
+  }
+  .firma-acciones{display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;}
+  .firma-hint{font-size:.72rem; color:var(--text-soft); margin-top:4px;}
+  .firma-mini{
+    height:36px; border:1px solid var(--border-soft);
+    border-radius:4px; background:#fff;
+    display:block; margin:auto;
+  }
+  .firma-cell{text-align:center;}
+  .firma-cell img{cursor:pointer;}
 </style>
 </head>
 <body>
@@ -98,7 +130,7 @@
   <section id="vista-captura">
     <div class="card">
       <h2>➕ Agregar registro (llenado manual)</h2>
-      <div class="alert">💡 Captura como en el Excel: selecciona plaza, escribe ID, nombre, elige puesto, fecha, justificación y horas extras. Todo se guarda en tu navegador (localStorage).</div>
+      <div class="alert">💡 Captura como en el Excel: selecciona plaza, escribe ID, nombre, elige puesto, fecha, justificación y horas extras. <b>Firma manual</b> con mouse o dedo. Todo se guarda en tu navegador (localStorage).</div>
       <div class="form-grid">
         <div><label>Plaza</label><select id="f-plaza"><option>ACA</option><option>CHL</option><option>CVA</option><option>IGU</option><option>TAX</option><option>ZIH</option></select></div>
         <div><label>ID</label><input id="f-id" placeholder="Ej. 2397"></div>
@@ -114,6 +146,19 @@
         <div><label>Fecha</label><input type="date" id="f-fecha"></div>
         <div><label>Hrs Extras</label><input type="number" step="0.5" min="0" id="f-hrs" placeholder="0"></div>
         <div style="grid-column:1/-1"><label>Justificación (resumen)</label><textarea id="f-just" placeholder="Ej. Cierre operativo / Seguimiento torre de control..."></textarea></div>
+
+        <!-- FIRMA -->
+        <div style="grid-column:1/-1">
+          <label>Firma manual (dibuja con mouse o dedo)</label>
+          <div class="firma-box" id="firma-box">
+            <canvas id="firma-canvas"></canvas>
+          </div>
+          <div class="firma-acciones">
+            <button class="btn btn-sec" type="button" onclick="limpiarFirma()">🧹 Limpiar firma</button>
+          </div>
+          <div class="firma-hint">La firma se guardará junto con el registro.</div>
+        </div>
+
         <div style="grid-column:1/-1; text-align:right;"><button class="btn btn-primary" onclick="agregar()">Agregar registro</button></div>
       </div>
     </div>
@@ -132,7 +177,7 @@
       <div style="max-height:420px; overflow:auto;">
         <table>
           <thead>
-            <tr><th>Plaza</th><th>ID</th><th>Nombre</th><th>Puesto</th><th>Fecha</th><th>Justificación</th><th>Hrs</th><th></th></tr>
+            <tr><th>Plaza</th><th>ID</th><th>Nombre</th><th>Puesto</th><th>Fecha</th><th>Justificación</th><th>Hrs</th><th>Firma</th><th></th></tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -163,7 +208,7 @@
       <h2>📝 Detalle por plaza</h2>
       <div style="max-height:360px; overflow:auto;">
         <table>
-          <thead><tr><th>Plaza</th><th>ID</th><th>Nombre</th><th>Puesto</th><th>Fecha</th><th>Justificación</th><th>Hrs</th></tr></thead>
+          <thead><tr><th>Plaza</th><th>ID</th><th>Nombre</th><th>Puesto</th><th>Fecha</th><th>Justificación</th><th>Hrs</th><th>Firma</th></tr></thead>
           <tbody id="tbody-resumen"></tbody>
         </table>
       </div>
@@ -187,8 +232,75 @@ aplicarTema(localStorage.getItem(TEMA_KEY) === 'dark');
 /* ================== DATOS ================== */
 const KEY = 'horas_extras_ta';
 let datos = JSON.parse(localStorage.getItem(KEY) || '[]');
-
 function guardar(){ localStorage.setItem(KEY, JSON.stringify(datos)); }
+
+/* ================== FIRMA (canvas) ================== */
+const canvas = document.getElementById('firma-canvas');
+const ctx = canvas.getContext('2d');
+let dibujando = false;
+let firmaVacia = true;
+
+// Ajustar tamaño real del canvas (para que no se vea pixelado)
+function ajustarCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  // Guardar contenido actual
+  const tmp = document.createElement('canvas');
+  tmp.width = canvas.width; tmp.height = canvas.height;
+  if(canvas.width && canvas.height) tmp.getContext('2d').drawImage(canvas, 0, 0);
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#111';
+  // Restaurar contenido previo (si lo había)
+  if(tmp.width && tmp.height){
+    ctx.drawImage(tmp, 0, 0, tmp.width, tmp.height, 0, 0, rect.width, rect.height);
+  }
+}
+window.addEventListener('load', ajustarCanvas);
+window.addEventListener('resize', ajustarCanvas);
+
+function pos(e){
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  return {x,y};
+}
+function empezar(e){
+  e.preventDefault();
+  dibujando = true;
+  firmaVacia = false;
+  const p = pos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+}
+function mover(e){
+  if(!dibujando) return;
+  e.preventDefault();
+  const p = pos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+}
+function terminar(e){
+  if(!dibujando) return;
+  e.preventDefault();
+  dibujando = false;
+}
+canvas.addEventListener('mousedown', empezar);
+canvas.addEventListener('mousemove', mover);
+canvas.addEventListener('mouseup', terminar);
+canvas.addEventListener('mouseleave', terminar);
+canvas.addEventListener('touchstart', empezar, {passive:false});
+canvas.addEventListener('touchmove', mover, {passive:false});
+canvas.addEventListener('touchend', terminar, {passive:false});
+
+function limpiarFirma(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  firmaVacia = true;
+}
 
 /* ================== NAV ================== */
 function showTab(t){
@@ -197,6 +309,8 @@ function showTab(t){
   document.getElementById('tab-captura').classList.toggle('active', t==='captura');
   document.getElementById('tab-resumen').classList.toggle('active', t==='resumen');
   if(t==='resumen') renderResumen();
+  // Reajustar canvas al volver a la pestaña captura
+  if(t==='captura') setTimeout(ajustarCanvas, 50);
 }
 
 /* ================== CAPTURA ================== */
@@ -217,8 +331,15 @@ function agregar(){
     alert('⚠️ Selecciona un Puesto del desplegable.');
     return;
   }
+  if(firmaVacia){
+    alert('⚠️ Falta la firma. Dibújala en el recuadro o presiona "Limpiar firma" si ya no la quieres.');
+    return;
+  }
 
-  datos.push({plaza, id, nombre:nom, puesto, fecha, hrs, just});
+  // Convertir firma a base64 (PNG)
+  const firmaData = canvas.toDataURL('image/png');
+
+  datos.push({plaza, id, nombre:nom, puesto, fecha, hrs, just, firma:firmaData});
   guardar();
 
   document.getElementById('f-id').value='';
@@ -227,6 +348,7 @@ function agregar(){
   document.getElementById('f-fecha').value='';
   document.getElementById('f-hrs').value='';
   document.getElementById('f-just').value='';
+  limpiarFirma();
   renderTabla();
 }
 
@@ -248,10 +370,13 @@ function renderTabla(){
                  (!ft || d.nombre.toLowerCase().includes(ft) || (d.id||'').toLowerCase().includes(ft)));
 
   if(lista.length===0){
-    tb.innerHTML='<tr><td colspan="8" class="empty">Sin registros. Agrega el primero arriba 👆</td></tr>';
+    tb.innerHTML='<tr><td colspan="9" class="empty">Sin registros. Agrega el primero arriba 👆</td></tr>';
     return;
   }
   lista.forEach(d=>{
+    const firmaHTML = d.firma
+      ? `<img src="${d.firma}" class="firma-mini" onclick="verFirma('${d.firma}')" title="Ver firma">`
+      : '<span style="color:var(--text-soft);font-size:.75rem">—</span>';
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td><span class="badge b-${d.plaza}">${d.plaza}</span></td>
@@ -261,9 +386,21 @@ function renderTabla(){
       <td>${d.fecha}</td>
       <td>${d.just||'-'}</td>
       <td><b>${d.hrs}</b></td>
+      <td class="firma-cell">${firmaHTML}</td>
       <td><button class="btn btn-danger" style="padding:3px 8px;font-size:.75rem" onclick="eliminar(${d._i})">✕</button></td>`;
     tb.appendChild(tr);
   });
+}
+
+/* Ver firma en grande */
+function verFirma(dataUrl){
+  const w = window.open('', '_blank', 'width=600,height=320');
+  w.document.write(`<title>Firma</title>
+    <div style="font-family:Arial;text-align:center;padding:10px;">
+      <h3>Firma del colaborador</h3>
+      <img src="${dataUrl}" style="max-width:90%;border:1px solid #ccc;border-radius:6px;background:#fff;">
+    </div>`);
+  w.document.close();
 }
 
 /* ================== RESUMEN ================== */
@@ -322,19 +459,25 @@ function renderResumen(){
 
   const tb = document.getElementById('tbody-resumen');
   tb.innerHTML = datos.length
-    ? datos.map(d=>`<tr>
-        <td><span class="badge b-${d.plaza}">${d.plaza}</span></td>
-        <td>${d.id||'-'}</td><td>${d.nombre}</td><td>${d.puesto||'-'}</td>
-        <td>${d.fecha}</td><td>${d.just||'-'}</td><td><b>${d.hrs}</b></td>
-      </tr>`).join('')
-    : '<tr><td colspan="7" class="empty">Sin datos</td></tr>';
+    ? datos.map(d=>{
+        const firmaHTML = d.firma
+          ? `<img src="${d.firma}" class="firma-mini" onclick="verFirma('${d.firma}')" title="Ver firma">`
+          : '—';
+        return `<tr>
+          <td><span class="badge b-${d.plaza}">${d.plaza}</span></td>
+          <td>${d.id||'-'}</td><td>${d.nombre}</td><td>${d.puesto||'-'}</td>
+          <td>${d.fecha}</td><td>${d.just||'-'}</td><td><b>${d.hrs}</b></td>
+          <td class="firma-cell">${firmaHTML}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="8" class="empty">Sin datos</td></tr>';
 }
 
 /* ================== EXPORT CSV ================== */
 function exportarCSV(){
   if(!datos.length){ alert('No hay datos para exportar.'); return; }
-  const head = 'Plaza,ID,Nombre,Puesto,Fecha,Justificacion,HrsExtras\n';
-  const body = datos.map(d=>[d.plaza,d.id,d.nombre,d.puesto,d.fecha,d.just,d.hrs]
+  const head = 'Plaza,ID,Nombre,Puesto,Fecha,Justificacion,HrsExtras,Firma\n';
+  const body = datos.map(d=>[d.plaza,d.id,d.nombre,d.puesto,d.fecha,d.just,d.hrs, d.firma?'Sí':'No']
     .map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([head+body], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
