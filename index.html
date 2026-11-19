@@ -98,7 +98,7 @@
   <section id="vista-captura">
     <div class="card">
       <h2>➕ Agregar registro (llenado manual)</h2>
-      <div class="alert">💡 Al dar clic en <b>Agregar registro</b>, se guarda automáticamente un archivo <b>horas_extras.json</b> con todos los registros acumulados (no se muestra en pantalla).</div>
+      <div class="alert">💡 Captura como en el Excel: selecciona plaza, escribe ID, nombre, elige puesto, fecha, justificación y horas extras. Todo se guarda en tu navegador (localStorage).</div>
       <div class="form-grid">
         <div><label>Plaza</label><select id="f-plaza"><option>ACA</option><option>CHL</option><option>CVA</option><option>IGU</option><option>TAX</option><option>ZIH</option></select></div>
         <div><label>ID</label><input id="f-id" placeholder="Ej. 2397"></div>
@@ -190,24 +190,6 @@ let datos = JSON.parse(localStorage.getItem(KEY) || '[]');
 
 function guardar(){ localStorage.setItem(KEY, JSON.stringify(datos)); }
 
-/* ================== GUARDAR JSON (automático) ================== */
-function guardarJSON(){
-  // Estructura del JSON: metadatos + array de registros
-  const payload = {
-    generado: new Date().toISOString(),
-    total_registros: datos.length,
-    total_horas: datos.reduce((s,d)=>s+d.hrs,0),
-    registros: datos
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'horas_extras.json';
-  a.click();
-  // liberar memoria
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-}
-
 /* ================== NAV ================== */
 function showTab(t){
   document.getElementById('vista-captura').classList.toggle('hidden', t!=='captura');
@@ -237,10 +219,8 @@ function agregar(){
   }
 
   datos.push({plaza, id, nombre:nom, puesto, fecha, hrs, just});
-  guardar();          // guarda en localStorage
-  guardarJSON();      // descarga el JSON automáticamente
+  guardar();
 
-  // limpiar formulario
   document.getElementById('f-id').value='';
   document.getElementById('f-nombre').value='';
   document.getElementById('f-puesto').value='';
