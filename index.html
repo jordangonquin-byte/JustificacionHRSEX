@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Horas Extras – Temporada Alta</title>
+<style>
+  /* ============ TEMA CLARO (default) ============ */
+  :root{
+    --azul:#1f4e79; --azul2:#2e75b6;
+    --bg:#eef2f7; --card:#ffffff; --text:#222; --text-soft:#555;
+    --border:#cccccc; --border-soft:#e0e0e0;
+    --row-alt:#f8fafc; --row-hover:#eaf3fb;
+    --track:#e0e7ef; --input-bg:#ffffff;
+    --verde:#2e7d32; --rojo:#c62828; --amarillo:#f9a825;
+    --shadow:0 2px 6px rgba(0,0,0,.08);
+    --alert-bg:#fff3cd; --alert-border:#f9a825;
+  }
+  /* ============ TEMA OSCURO ============ */
+  body.dark{
+    --azul:#0d2a45; --azul2:#3a8fd6;
+    --bg:#12181f; --card:#1c242e; --text:#e6edf3; --text-soft:#9fb0c0;
+    --border:#3a4757; --border-soft:#2a3542;
+    --row-alt:#202a35; --row-hover:#28394a;
+    --track:#2a3542; --input-bg:#0f151c;
+    --verde:#43a047; --rojo:#e53935; --amarillo:#fdd835;
+    --shadow:0 2px 8px rgba(0,0,0,.5);
+    --alert-bg:#3a3315; --alert-border:#fdd835;
+  }
+
+  *{box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif;}
+  body{margin:0; background:var(--bg); color:var(--text); transition:background .3s, color .3s;}
+
+  header{background:var(--azul); color:#fff; padding:14px 22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+  header h1{margin:0; font-size:1.2rem;}
+  nav{display:flex; align-items:center; gap:8px;}
+  nav button{background:var(--azul2); color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-weight:600;}
+  nav button.active{background:#fff; color:var(--azul);}
+  #btn-tema{background:rgba(255,255,255,.15); font-size:1.1rem; padding:6px 10px; border-radius:50%; width:38px; height:38px; display:flex; align-items:center; justify-content:center; transition:transform .2s;}
+  #btn-tema:hover{transform:scale(1.1); background:rgba(255,255,255,.3);}
+
+  main{padding:18px; max-width:1400px; margin:auto;}
+  .card{background:var(--card); border-radius:10px; padding:16px; box-shadow:var(--shadow); margin-bottom:16px; transition:background .3s;}
+  h2{margin:0 0 12px; color:var(--azul2); font-size:1.05rem; border-left:4px solid var(--azul2); padding-left:8px;}
+
+  .form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; align-items:end;}
+  label{font-size:.78rem; font-weight:600; color:var(--text-soft); display:block; margin-bottom:3px;}
+  input, select, textarea{width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:6px; font-size:.9rem; background:var(--input-bg); color:var(--text); transition:background .3s,color .3s,border .3s;}
+  textarea{resize:vertical; min-height:38px;}
+
+  .btn{padding:9px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:.9rem;}
+  .btn-primary{background:var(--azul2); color:#fff;}
+  .btn-primary:hover{background:var(--azul);}
+  .btn-danger{background:var(--rojo); color:#fff;}
+  .btn-ok{background:var(--verde); color:#fff;}
+
+  table{width:100%; border-collapse:collapse; font-size:.85rem;}
+  th{background:var(--azul); color:#fff; padding:8px; text-align:left; position:sticky; top:0;}
+  td{padding:7px 8px; border-bottom:1px solid var(--border-soft);}
+  tr:nth-child(even){background:var(--row-alt);}
+  tr:hover{background:var(--row-hover);}
+
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px;}
+  .kpi{background:linear-gradient(135deg,var(--azul2),var(--azul)); color:#fff; border-radius:10px; padding:14px; text-align:center;}
+  .kpi .num{font-size:1.8rem; font-weight:700;}
+  .kpi .lbl{font-size:.75rem; opacity:.9; text-transform:uppercase; letter-spacing:.5px;}
+
+  .bar-row{display:flex; align-items:center; gap:8px; margin:6px 0; font-size:.85rem;}
+  .bar-label{width:180px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .bar-track{flex:1; background:var(--track); border-radius:6px; height:20px; overflow:hidden;}
+  .bar-fill{height:100%; background:linear-gradient(90deg,var(--azul2),var(--verde)); border-radius:6px; transition:width .4s;}
+  .bar-val{width:55px; text-align:right; font-weight:600;}
+
+  .toolbar{display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center;}
+  .hidden{display:none;}
+
+  .badge{display:inline-block; padding:2px 8px; border-radius:10px; font-size:.7rem; font-weight:700; color:#fff;}
+  .b-ACA{background:#1f4e79;} .b-CHL{background:#2e7d32;} .b-CVA{background:#c62828;}
+  .b-IGU{background:#f9a825;color:#222;} .b-TAX{background:#6a1b9a;} .b-ZIH{background:#4e342e;}
+
+  .empty{text-align:center; color:var(--text-soft); padding:20px; font-style:italic;}
+  .alert{background:var(--alert-bg); border-left:4px solid var(--alert-border); padding:10px; border-radius:6px; font-size:.85rem; margin-bottom:12px; color:var(--text);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 Dashboard Horas Extras – Temporada Alta</h1>
+  <nav>
+    <button id="tab-captura" class="active" onclick="showTab('captura')">📝 Captura</button>
+    <button id="tab-resumen" onclick="showTab('resumen')">📈 Resumen</button>
+    <button id="btn-tema" onclick="toggleTema()" title="Cambiar tema">🌙</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= VISTA CAPTURA ================= -->
+  <section id="vista-captura">
+    <div class="card">
+      <h2>➕ Agregar registro (llenado manual)</h2>
+      <div class="alert">💡 Al dar clic en <b>Agregar registro</b>, se guarda automáticamente un archivo <b>horas_extras.json</b> con todos los registros acumulados (no se muestra en pantalla).</div>
+      <div class="form-grid">
+        <div><label>Plaza</label><select id="f-plaza"><option>ACA</option><option>CHL</option><option>CVA</option><option>IGU</option><option>TAX</option><option>ZIH</option></select></div>
+        <div><label>ID</label><input id="f-id" placeholder="Ej. 2397"></div>
+        <div><label>Nombre</label><input id="f-nombre" placeholder="Nombre completo"></div>
+        <div>
+          <label>Puesto</label>
+          <select id="f-puesto">
+            <option value="">-- Selecciona --</option>
+            <option value="SUPERVISOR DE OPERACIONES 'A'">SUPERVISOR DE OPERACIONES 'A'</option>
+            <option value="AUXILIAR DE OPERACIONES">AUXILIAR DE OPERACIONES</option>
+          </select>
+        </div>
+        <div><label>Fecha</label><input type="date" id="f-fecha"></div>
+        <div><label>Hrs Extras</label><input type="number" step="0.5" min="0" id="f-hrs" placeholder="0"></div>
+        <div style="grid-column:1/-1"><label>Justificación (resumen)</label><textarea id="f-just" placeholder="Ej. Cierre operativo / Seguimiento torre de control..."></textarea></div>
+        <div style="grid-column:1/-1; text-align:right;"><button class="btn btn-primary" onclick="agregar()">Agregar registro</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📋 Registros capturados</h2>
+      <div class="toolbar">
+        <select id="filtro-plaza" onchange="renderTabla()">
+          <option value="">Todas las plazas</option>
+          <option>ACA</option><option>CHL</option><option>CVA</option><option>IGU</option>
+          <option>TAX</option><option>ZIH</option>
+        </select>
+        <input id="filtro-texto" placeholder="Buscar nombre/ID..." oninput="renderTabla()" style="max-width:260px;">
+        <button class="btn btn-ok" onclick="exportarCSV()">⬇ Exportar CSV</button>
+      </div>
+      <div style="max-height:420px; overflow:auto;">
+        <table>
+          <thead>
+            <tr><th>Plaza</th><th>ID</th><th>Nombre</th><th>Puesto</th><th>Fecha</th><th>Justificación</th><th>Hrs</th><th></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VISTA RESUMEN ================= -->
+  <section id="vista-resumen" class="hidden">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card">
+      <h2>🏢 Total de horas por plaza</h2>
+      <div id="bars-plaza"></div>
+    </div>
+
+    <div class="card">
+      <h2>👤 Top colaboradores (por horas)</h2>
+      <div id="bars-colab"></div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Total por fecha</h2>
+      <div id="bars-fecha"></div>
+    </div>
+
+    <div class="card">
+      <h2>📝 Detalle por plaza</h2>
+      <div style="max-height:360px; overflow:auto;">
+        <table>
+          <thead><tr><th>Plaza</th><th>ID</th><th>Nombre</th><th>Puesto</th><th>Fecha</th><th>Justificación</th><th>Hrs</th></tr></thead>
+          <tbody id="tbody-resumen"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ================== TEMA ================== */
+const TEMA_KEY = 'horas_extras_tema';
+function aplicarTema(oscuro){
+  document.body.classList.toggle('dark', oscuro);
+  document.getElementById('btn-tema').textContent = oscuro ? '☀️' : '🌙';
+  localStorage.setItem(TEMA_KEY, oscuro ? 'dark' : 'light');
+}
+function toggleTema(){
+  aplicarTema(!document.body.classList.contains('dark'));
+}
+aplicarTema(localStorage.getItem(TEMA_KEY) === 'dark');
+
+/* ================== DATOS ================== */
+const KEY = 'horas_extras_ta';
+let datos = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+function guardar(){ localStorage.setItem(KEY, JSON.stringify(datos)); }
+
+/* ================== GUARDAR JSON (automático) ================== */
+function guardarJSON(){
+  // Estructura del JSON: metadatos + array de registros
+  const payload = {
+    generado: new Date().toISOString(),
+    total_registros: datos.length,
+    total_horas: datos.reduce((s,d)=>s+d.hrs,0),
+    registros: datos
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'horas_extras.json';
+  a.click();
+  // liberar memoria
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ================== NAV ================== */
+function showTab(t){
+  document.getElementById('vista-captura').classList.toggle('hidden', t!=='captura');
+  document.getElementById('vista-resumen').classList.toggle('hidden', t!=='resumen');
+  document.getElementById('tab-captura').classList.toggle('active', t==='captura');
+  document.getElementById('tab-resumen').classList.toggle('active', t==='resumen');
+  if(t==='resumen') renderResumen();
+}
+
+/* ================== CAPTURA ================== */
+function agregar(){
+  const plaza = document.getElementById('f-plaza').value;
+  const id    = document.getElementById('f-id').value.trim();
+  const nom   = document.getElementById('f-nombre').value.trim();
+  const puesto= document.getElementById('f-puesto').value;
+  const fecha = document.getElementById('f-fecha').value;
+  const hrs   = parseFloat(document.getElementById('f-hrs').value);
+  const just  = document.getElementById('f-just').value.trim();
+
+  if(!nom || !fecha || isNaN(hrs) || hrs<=0){
+    alert('⚠️ Completa al menos Nombre, Fecha y Horas Extras (>0).');
+    return;
+  }
+  if(!puesto){
+    alert('⚠️ Selecciona un Puesto del desplegable.');
+    return;
+  }
+
+  datos.push({plaza, id, nombre:nom, puesto, fecha, hrs, just});
+  guardar();          // guarda en localStorage
+  guardarJSON();      // descarga el JSON automáticamente
+
+  // limpiar formulario
+  document.getElementById('f-id').value='';
+  document.getElementById('f-nombre').value='';
+  document.getElementById('f-puesto').value='';
+  document.getElementById('f-fecha').value='';
+  document.getElementById('f-hrs').value='';
+  document.getElementById('f-just').value='';
+  renderTabla();
+}
+
+function eliminar(i){
+  if(confirm('¿Eliminar este registro?')){
+    datos.splice(i,1); guardar(); renderTabla();
+  }
+}
+
+/* ================== TABLA CAPTURA ================== */
+function renderTabla(){
+  const fp = document.getElementById('filtro-plaza').value;
+  const ft = document.getElementById('filtro-texto').value.toLowerCase();
+  const tb = document.getElementById('tbody');
+  tb.innerHTML='';
+  const lista = datos
+    .map((d,i)=>({...d, _i:i}))
+    .filter(d => (!fp || d.plaza===fp) &&
+                 (!ft || d.nombre.toLowerCase().includes(ft) || (d.id||'').toLowerCase().includes(ft)));
+
+  if(lista.length===0){
+    tb.innerHTML='<tr><td colspan="8" class="empty">Sin registros. Agrega el primero arriba 👆</td></tr>';
+    return;
+  }
+  lista.forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="badge b-${d.plaza}">${d.plaza}</span></td>
+      <td>${d.id||'-'}</td>
+      <td>${d.nombre}</td>
+      <td>${d.puesto||'-'}</td>
+      <td>${d.fecha}</td>
+      <td>${d.just||'-'}</td>
+      <td><b>${d.hrs}</b></td>
+      <td><button class="btn btn-danger" style="padding:3px 8px;font-size:.75rem" onclick="eliminar(${d._i})">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* ================== RESUMEN ================== */
+function renderResumen(){
+  const totalHrs = datos.reduce((s,d)=>s+d.hrs,0);
+  const colaboradores = new Set(datos.map(d=>d.nombre)).size;
+  const plazas = new Set(datos.map(d=>d.plaza)).size;
+  const porPlaza = {};
+  datos.forEach(d=> porPlaza[d.plaza]=(porPlaza[d.plaza]||0)+d.hrs);
+  const topPlaza = Object.entries(porPlaza).sort((a,b)=>b[1]-a[1])[0];
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="num">${totalHrs.toFixed(1)}</div><div class="lbl">Total horas extras</div></div>
+    <div class="kpi"><div class="num">${colaboradores}</div><div class="lbl">Colaboradores</div></div>
+    <div class="kpi"><div class="num">${plazas}</div><div class="lbl">Plazas con registro</div></div>
+    <div class="kpi"><div class="num">${datos.length}</div><div class="lbl">Registros</div></div>
+    <div class="kpi"><div class="num" style="font-size:1.2rem">${topPlaza?topPlaza[0]+' ('+topPlaza[1].toFixed(1)+'h)':'-'}</div><div class="lbl">Plaza con más horas</div></div>
+  `;
+
+  const arrPlaza = Object.entries(porPlaza).sort((a,b)=>b[1]-a[1]);
+  const maxP = arrPlaza[0]?arrPlaza[0][1]:1;
+  document.getElementById('bars-plaza').innerHTML = arrPlaza.length
+    ? arrPlaza.map(([p,h])=>`
+        <div class="bar-row">
+          <div class="bar-label">${p}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(h/maxP*100).toFixed(1)}%"></div></div>
+          <div class="bar-val">${h.toFixed(1)} h</div>
+        </div>`).join('')
+    : '<div class="empty">Sin datos</div>';
+
+  const porColab = {};
+  datos.forEach(d=> porColab[d.nombre]=(porColab[d.nombre]||0)+d.hrs);
+  const arrColab = Object.entries(porColab).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const maxC = arrColab[0]?arrColab[0][1]:1;
+  document.getElementById('bars-colab').innerHTML = arrColab.length
+    ? arrColab.map(([n,h])=>`
+        <div class="bar-row">
+          <div class="bar-label" title="${n}">${n}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(h/maxC*100).toFixed(1)}%"></div></div>
+          <div class="bar-val">${h.toFixed(1)} h</div>
+        </div>`).join('')
+    : '<div class="empty">Sin datos</div>';
+
+  const porFecha = {};
+  datos.forEach(d=> porFecha[d.fecha]=(porFecha[d.fecha]||0)+d.hrs);
+  const arrFecha = Object.entries(porFecha).sort((a,b)=>a[0].localeCompare(b[0]));
+  const maxF = arrFecha.reduce((m,[,h])=>Math.max(m,h),1);
+  document.getElementById('bars-fecha').innerHTML = arrFecha.length
+    ? arrFecha.map(([f,h])=>`
+        <div class="bar-row">
+          <div class="bar-label">${f}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(h/maxF*100).toFixed(1)}%"></div></div>
+          <div class="bar-val">${h.toFixed(1)} h</div>
+        </div>`).join('')
+    : '<div class="empty">Sin datos</div>';
+
+  const tb = document.getElementById('tbody-resumen');
+  tb.innerHTML = datos.length
+    ? datos.map(d=>`<tr>
+        <td><span class="badge b-${d.plaza}">${d.plaza}</span></td>
+        <td>${d.id||'-'}</td><td>${d.nombre}</td><td>${d.puesto||'-'}</td>
+        <td>${d.fecha}</td><td>${d.just||'-'}</td><td><b>${d.hrs}</b></td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" class="empty">Sin datos</td></tr>';
+}
+
+/* ================== EXPORT CSV ================== */
+function exportarCSV(){
+  if(!datos.length){ alert('No hay datos para exportar.'); return; }
+  const head = 'Plaza,ID,Nombre,Puesto,Fecha,Justificacion,HrsExtras\n';
+  const body = datos.map(d=>[d.plaza,d.id,d.nombre,d.puesto,d.fecha,d.just,d.hrs]
+    .map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([head+body], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'horas_extras_temporada_alta.csv';
+  a.click();
+}
+
+/* ================== INIT ================== */
+renderTabla();
+</script>
+</body>
+</html>
